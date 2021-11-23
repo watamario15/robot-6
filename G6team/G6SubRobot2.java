@@ -2,7 +2,7 @@ package G6team;
 
 import robocode.*;
 import java.awt.Color;
-
+import robocode.util.Utils;
 import java.util.Random;//added to use random values
 
 public class G6SubRobot2 extends TeamRobot {
@@ -36,7 +36,7 @@ public class G6SubRobot2 extends TeamRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
-
+        
     }
 
     public void onHitByBullet(HitByBulletEvent e) { // What to do when you're hit by a bullet
