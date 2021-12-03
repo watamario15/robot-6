@@ -38,12 +38,12 @@ public class G6MeleeRobot extends AdvancedRobot {
 		if(rnd.nextBoolean()){
 			direction *= -1;
 		}
+		setMaxTurnRate(3);//change turn rate
 		
 		Rectangle2D fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth()-160, getBattleFieldHeight()-160); // make a square in the field. it is the safety area.
 		setAhead(100000); // always go ahead
-		setTurnRight(direction*(30+rnd.nextDouble()*120)); // 
-		double startTime = getTime();
-		while(/*getTime()-startTime<10.0*/getTurnRemaining()!=0){
+		setTurnRight(direction*(30+rnd.nextDouble()*120)); 
+		while(getTurnRemaining()!=0){
 			double goalDirection = getHeadingRadians();
 			while (!fieldRect.contains(getX()+Math.sin(goalDirection)*150, getY()+
 					Math.cos(goalDirection)*150))
@@ -57,8 +57,7 @@ public class G6MeleeRobot extends AdvancedRobot {
 				turn = robocode.util.Utils.normalRelativeAngle(turn + Math.PI);
 				setBack(100);
 			}
-			else
-				//setAhead(100);
+			setMaxTurnRate(10);//reset turn rate in order to avoid walls
 			if(turn != 0)setTurnRightRadians(turn);
 			execute();
 		}
