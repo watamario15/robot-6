@@ -3,8 +3,7 @@ package G6melee;
 import robocode.*;
 import java.awt.Color;
 import robocode.util.Utils;
-import java.util.Random;//added to use random values
-
+import java.util.Random; // added to use random values
 import javax.management.relation.RoleNotFoundException;
 
 public class G6MeleeRobot extends AdvancedRobot {
@@ -18,18 +17,18 @@ public class G6MeleeRobot extends AdvancedRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
-        // Reference: http://robowiki.net/wiki/Robocode/Butthead        
+        if (e.getDistance() > 300){ // If the enemy is too far away, go back to random movement
+            randomMovement();
+            return;
+        }
+
+        // Reference: http://robowiki.net/wiki/Robocode/Butthead
         // linear prediction gun
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
         double theta = Math.asin(e.getVelocity()*Math.sin(e.getHeadingRadians()-absBearing)/bulletVelocity(power)); // The extra angle the bullet would travel in
         double gunAngle = Utils.normalRelativeAngle(absBearing - getGunHeadingRadians() + theta); // The angle the gun needs to turn to hit the enemy
         setTurnGunRightRadians(gunAngle);
         setFire(power);
-        execute();
-        if (e.getDistance() > 300){ // If the enemy is too far away, go back to random movement
-            randomMovement();
-            return;
-        }
         
         // Track enemy
         setTurnRightRadians(e.getBearingRadians());
