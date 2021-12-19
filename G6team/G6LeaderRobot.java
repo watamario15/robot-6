@@ -11,10 +11,12 @@ import G6common.*;
 public class G6LeaderRobot extends TeamRobot {
     private double power = 2; // power of the gun
     private double direction = 1; // The direction of the random movement
-    private boolean changeTargetName = true; // Whether the target robot should be changed
     private String targetName; // Target robot's name
+    private Rectangle2D fieldRect; // safety square in the field
+    private Random rnd = new Random();
 
     public void run() { // G6LeaderRobot's default behavior
+        fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth() - 160, getBattleFieldHeight() - 160);
         setColors(Color.gray, Color.yellow, Color.yellow); // body, gun, radar
         setAdjustGunForRobotTurn(true); // Set the gun to turn independent from the robot's turn
         setAdjustRadarForGunTurn(true); // Set the radar to turn independent from the gun's turn
@@ -32,11 +34,10 @@ public class G6LeaderRobot extends TeamRobot {
         double targetX = getX() + e.getDistance() * Math.sin(absBearing);
         double targetY = getY() + e.getDistance() * Math.cos(absBearing);
 
-        if(changeTargetName) { // When the target robot is dead
-            setColors(Color.gray, Color.blue, Color.yellow); // debug
+        if(targetName == null && ((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700))) { // When the target robot is dead or undecided
+            //setColors(Color.gray, Color.blue, Color.yellow); // debug
             targetName = e.getName();
-            changeTargetName = false;
-            Message targetMessage = new Message(targetName);
+            TargetInfo targetMessage = new TargetInfo(targetName);
             try {
                 broadcastMessage(targetMessage);
             } catch (IOException ex) {
@@ -79,23 +80,27 @@ public class G6LeaderRobot extends TeamRobot {
     }
 
     public void onRobotDeath(RobotDeathEvent e){ // What to do when a robot dies
-        if(e.getName().equals(targetName)){ // if the target robot is dead
-            setColors(Color.gray, Color.red, Color.yellow); // debug
-            changeTargetName = true;
+        if(e.getName().equals(targetName)){
+            targetName = null;
+            TargetInfo targetMessage = new TargetInfo(null);
+            try {
+                broadcastMessage(targetMessage);
+            } catch (IOException ex) {
+                out.println("Unable to broadcast an order.");
+                ex.printStackTrace(out);
+            }
         }
     }
 
     private void randomMovement() {
-        Random rnd = new Random();
-        
-        if(rnd.nextBoolean()) direction *= -1;
-        setMaxTurnRate(3); // change the turn rate
+        if(getTurnRemaining() == 0) {
+            if(rnd.nextBoolean()) direction = -direction;
+            setMaxTurnRate(3); // change the turn rate
 
-        Rectangle2D fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth() - 160, getBattleFieldHeight() - 160); // make a safety square in the field
-        setAhead(100000); // always go ahead
-        setTurnRight(direction * (30 + rnd.nextDouble() * 120));
-        setTurnRadarRightRadians(100000);
-        while (getTurnRemaining() != 0) {
+            setAhead(100000); // always go ahead
+            setTurnRight(direction * (30 + rnd.nextDouble() * 120));
+            setTurnRadarRightRadians(100000);
+        } else {
             double goalDirection = getHeadingRadians();
             while (!fieldRect.contains(getX() + Math.sin(goalDirection) * 150, getY() + Math.cos(goalDirection) * 150)) {
                 goalDirection += direction * .1;
@@ -107,8 +112,8 @@ public class G6LeaderRobot extends TeamRobot {
             }
             setMaxTurnRate(10); // reset the turn rate in order to avoid hitting walls
             if(turn != 0) setTurnRightRadians(turn);
-            execute();
         }
+        execute();
     }
 
     private double bulletVelocity(double power) {
