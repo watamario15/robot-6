@@ -7,7 +7,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.Random; // added to use random values
 
 public class G6MeleeRobot extends AdvancedRobot {
-    private double power = 2; // power of the gun
+    private double power = 1.5; // power of the gun
     private double direction = 1; // The direction of the random movement
     private Rectangle2D fieldRect; // safety square in the field
     private Random rnd = new Random();
@@ -22,6 +22,10 @@ public class G6MeleeRobot extends AdvancedRobot {
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
         if(e.getDistance() > 300) return;// If the enemy is too faraway, go back to the random movement
+
+        // Adjust the bullet energy
+        if(e.getDistance() > 100) power = 1.5;
+        else power = 3;
 
         // Reference: http://robowiki.net/wiki/Robocode/Butthead
         // linear prediction gun

@@ -9,10 +9,10 @@ import java.io.IOException;
 import G6common.*;
 
 public class G6LeaderRobot extends TeamRobot {
-    private double power = 2; // power of the gun
+    private double power = 1.5; // power of the gun
     private double direction = 1; // The direction of the random movement
     private String targetName; // Target robot's name
-    private Rectangle2D fieldRect; // safety square in the field
+    private Rectangle2D fieldRect; // safe square in the field
     private Random rnd = new Random();
 
     public void run() { // G6LeaderRobot's default behavior
@@ -27,6 +27,10 @@ public class G6LeaderRobot extends TeamRobot {
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
         if(isTeammate(e.getName())) return; // If the robot is teammate, go back to the default behavior
 
+        // Adjust the bullet energy
+        if(e.getDistance() > 100) power = 1.5;
+        else power = 3;
+
         // Reference: http://robowiki.net/wiki/Robocode/Butthead
         // linear prediction gun
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
@@ -34,6 +38,7 @@ public class G6LeaderRobot extends TeamRobot {
         double targetX = getX() + e.getDistance() * Math.sin(absBearing);
         double targetY = getY() + e.getDistance() * Math.cos(absBearing);
 
+        // if the target name right now is empty, find the enemy on the corner, and send it to other robots as the target
         if(targetName == null && ((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700))) { // When the target robot is dead or undecided
             //setColors(Color.gray, Color.blue, Color.yellow); // debug
             targetName = e.getName();
@@ -46,6 +51,7 @@ public class G6LeaderRobot extends TeamRobot {
             }
         }
         
+        // when the scanned robot is the current target
         if(e.getName().equals(targetName)) {
             // Track enemy
             setTurnRightRadians(e.getBearingRadians());
@@ -58,12 +64,12 @@ public class G6LeaderRobot extends TeamRobot {
             double extraTurn = Math.min(Math.atan(36.0 / e.getDistance()), Rules.RADAR_TURN_RATE_RADIANS);
 
             // Adjust the radar turn so it goes that much further in the direction it is going to turn
-            // Basically if we were going to turn it left, turn it even more left, if right, turn more right.
-            // This allows us to overshoot our enemy so that we get a good sweep that will not slip.
+            // overshoot the enemy to get a good sweep of them
             if(radarTurn < 0) radarTurn -= extraTurn;
             else radarTurn += extraTurn;
             setTurnRadarRightRadians(radarTurn); //Turn the radar
 
+            // adjust the gun to the predicted location of the enemy
             double gunAngle = Utils.normalRelativeAngle(absBearing - getGunHeadingRadians() + theta);
             setTurnGunRightRadians(gunAngle);
             setFire(power);
@@ -78,8 +84,20 @@ public class G6LeaderRobot extends TeamRobot {
     public void onHitWall(HitWallEvent e) { // What to do when you hit a wall
 
     }
-
+/*
+    public void onBulletHit(BulletHitEvent e) {
+        if (isTeammate(e.getName())) {
+            int deg = 30;
+            Random rnd = new Random();
+            if (rnd.nextBoolean())
+                turnLeft(deg);
+            else
+                turnRight(deg);
+        }
+    }
+*/
     public void onRobotDeath(RobotDeathEvent e){ // What to do when a robot dies
+        // if the death robot is the ctarget robot, empty the target name
         if(e.getName().equals(targetName)){
             targetName = null;
             TargetInfo targetMessage = new TargetInfo(null);

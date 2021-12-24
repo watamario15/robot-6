@@ -9,7 +9,7 @@ import G6common.*;
 import java.io.IOException;
 
 public class G6SubRobot2 extends TeamRobot {
-    private double power = 2; // power of the gun
+    private double power = 1.5; // power of the gun
     private double direction = 1; // The direction of the random movement
     private String targetName, leaderName = "G6team.G6LeaderRobot*";
     private TargetInfo leaderMessage;
@@ -28,6 +28,10 @@ public class G6SubRobot2 extends TeamRobot {
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
         if (isTeammate(e.getName()) || (!leaderName.equals(getName()) && targetName!=null && !e.getName().equals(targetName))) return; // If the robot is teammate/not target, go back to the random movement
 
+        // Adjust the bullet energy
+        if(e.getDistance() > 100) power = 1.5;
+        else power = 3;
+
         // Reference: http://robowiki.net/wiki/Robocode/Butthead
         // linear prediction gun
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
@@ -35,6 +39,7 @@ public class G6SubRobot2 extends TeamRobot {
         double targetX = getX() + e.getDistance() * Math.sin(absBearing);
         double targetY = getY() + e.getDistance() * Math.cos(absBearing);
 
+        // when this robot is the leader broadcast the message like the leader robot
         if(leaderName.equals(getName()) && targetName == null && ((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700))) { // When the target robot is dead or undecided
             //setColors(Color.gray, Color.blue, Color.yellow); // debug
             targetName = e.getName();
