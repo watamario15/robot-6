@@ -15,6 +15,8 @@ public class G6SubRobot1 extends TeamRobot {
     private String intervalName;
     private String targetName, leaderName = "G6team.G6LeaderRobot*";
     private String myName;
+    private int timeCounter;
+    private MyInfo[] myInfoArray = new MyInfo[2]; // MyInfo array
     private TargetInfo leaderMessage;
     private Rectangle2D fieldRect; // safety square in the field
     private Random rnd = new Random();
@@ -30,6 +32,20 @@ public class G6SubRobot1 extends TeamRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
+        if(!isPass(e)) return;
+
+        timeCounter++;
+        if(timeCounter >= 30){
+            timeCounter = 0;
+            MyInfo myInfo = new MyInfo(getX(), getY(), 0);
+            try {
+                broadcastMessage(myInfo);
+            } catch (IOException ex) {
+                out.println("Unable to broadcast my information.");
+                ex.printStackTrace(out);
+            }
+        }
+
         // Adjust the bullet energy
         if(e.getDistance() > 100) power = 1.5;
         else power = 3;
@@ -40,9 +56,15 @@ public class G6SubRobot1 extends TeamRobot {
         double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power)); // The extra angle the bullet would travel
         double targetX = getX() + e.getDistance() * Math.sin(absBearing);
         double targetY = getY() + e.getDistance() * Math.cos(absBearing);
-
         
-        if(leaderName.equals(myName) && targetName == null && ((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700))) { // When the target robot is dead or undecided
+        // targeting single enemy and he's gone to corner
+        if(targetName!=null && targetName.equals(e.getName()) && (targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)){
+            interval = getTime();
+            intervalName = e.getName();
+        }
+        
+        // when this robot is the leader, broadcast a message
+        if(leaderName.equals(myName) && targetName == null && !(((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)))) { // When the target robot is dead or undecided
             //setColors(Color.gray, Color.blue, Color.yellow); // debug
             targetName = e.getName();
             TargetInfo targetMessage = new TargetInfo(targetName);
@@ -85,6 +107,18 @@ public class G6SubRobot1 extends TeamRobot {
     }
 
     private void randomMovement() {
+        timeCounter++;
+        if(timeCounter >= 30){
+            timeCounter = 0;
+            MyInfo myInfo = new MyInfo(getX(), getY(), 0);
+            try {
+                broadcastMessage(myInfo);
+            } catch (IOException ex) {
+                out.println("Unable to broadcast my information.");
+                ex.printStackTrace(out);
+            }
+        }
+
         if(getTurnRemaining() == 0) {
             if(rnd.nextBoolean()) direction = -direction;
             setMaxTurnRate(3); // change the turn rate
@@ -106,6 +140,17 @@ public class G6SubRobot1 extends TeamRobot {
             if(turn != 0) setTurnRightRadians(turn);
         }
         execute();
+    }
+
+    public void onBulletHit(BulletHitEvent e) {
+        if (isTeammate(e.getName())) {
+            int deg = 30;
+            Random rnd = new Random();
+            back(50);
+            if(rnd.nextBoolean()) turnLeft(deg);
+            else turnRight(deg);
+            ahead(100);
+        }
     }
 
     public void onRobotDeath(RobotDeathEvent e){ // What to do when a robot dies
@@ -140,19 +185,36 @@ public class G6SubRobot1 extends TeamRobot {
         }else if(e.getMessage() instanceof EnergyInfo) {
             if(getEnergy() >= ((EnergyInfo)e.getMessage()).energy) leaderName = myName;
             else leaderName = "G6team.G6SubRobot2*";
+        }else if(e.getMessage() instanceof MyInfo) {
+            MyInfo _myInfo = (MyInfo)e.getMessage();
+            myInfoArray[_myInfo.id] = _myInfo;
         }
-        return;
     }
 
     private boolean isPass(ScannedRobotEvent e){
         String enemyName = e.getName();
 
-        return isTeammate(enemyName) || (!leaderName.equals(myName) && targetName!=null && !enemyName.equals(targetName));
-        if (isTeammate(enemyName)) return false;
-        if (!leaderName.equals(myName)){ // This robot is not the leader
-            if (targetName!=null && !enemyName.equals(targetName)) return false; // If the robot is teammate/not target, go back to the random movement
+        if(isTeammate(enemyName)) return false;
+        if(leaderName.equals(myName)){ // This robot is the leader
+            if(enemyName.equals(targetName)) return true;
+            else return false;
+        }else{
+            if(targetName!=null && !enemyName.equals(targetName)) return false; // If the robot is teammate/not target, go back to the random movement
+            else{
+                if(intervalName!=null){
+                    if(targetName.equals(intervalName)){
+                        if(getTime()-interval <= 300) return false;
+                        else{
+                            intervalName = null;
+                            interval = 0;
+                            return true;
+                        }
+                    }
+                    else return true;
+                }
+                else return true;
+            }
         }
-
     }
 
     private double bulletVelocity(double power) {

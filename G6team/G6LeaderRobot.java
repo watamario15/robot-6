@@ -12,6 +12,7 @@ public class G6LeaderRobot extends TeamRobot {
     private double power = 1.5; // power of the gun
     private double direction = 1; // The direction of the random movement
     private String targetName; // Target robot's name
+    private MyInfo[] myInfoArray = new MyInfo[2]; // MyInfo array
     private Rectangle2D fieldRect; // safe square in the field
     private Random rnd = new Random();
 
@@ -38,8 +39,8 @@ public class G6LeaderRobot extends TeamRobot {
         double targetX = getX() + e.getDistance() * Math.sin(absBearing);
         double targetY = getY() + e.getDistance() * Math.cos(absBearing);
 
-        // if the target name right now is empty, find the enemy on the corner, and send it to other robots as the target
-        if(targetName == null && ((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700))) { // When the target robot is dead or undecided
+        // if the target name right now is empty, find the enemy on the non-corner, and send it to other robots as the target
+        if(targetName == null && !(((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)))) { // When the target robot is dead or undecided
             //setColors(Color.gray, Color.blue, Color.yellow); // debug
             targetName = e.getName();
             TargetInfo targetMessage = new TargetInfo(targetName);
@@ -84,18 +85,18 @@ public class G6LeaderRobot extends TeamRobot {
     public void onHitWall(HitWallEvent e) { // What to do when you hit a wall
 
     }
-/*
+
     public void onBulletHit(BulletHitEvent e) {
         if (isTeammate(e.getName())) {
             int deg = 30;
             Random rnd = new Random();
-            if (rnd.nextBoolean())
-                turnLeft(deg);
-            else
-                turnRight(deg);
+            back(50);
+            if(rnd.nextBoolean()) turnLeft(deg);
+            else turnRight(deg);
+            ahead(100);
         }
     }
-*/
+
     public void onRobotDeath(RobotDeathEvent e){ // What to do when a robot dies
         // if the death robot is the ctarget robot, empty the target name
         if(e.getName().equals(targetName)){
@@ -132,6 +133,13 @@ public class G6LeaderRobot extends TeamRobot {
             if(turn != 0) setTurnRightRadians(turn);
         }
         execute();
+    }
+
+    public void onMessageReceived(MessageEvent e) {
+        if(e.getMessage() instanceof MyInfo) {
+            MyInfo _myInfo = (MyInfo)e.getMessage();
+            myInfoArray[_myInfo.id] = _myInfo;
+        }
     }
 
     private double bulletVelocity(double power) {
