@@ -15,6 +15,7 @@ public class G6LeaderRobot extends TeamRobot {
     private MyInfo[] myInfoArray = new MyInfo[2]; // MyInfo array
     private Rectangle2D fieldRect; // safe square in the field
     private Random rnd = new Random();
+    private int aliveRobots = 3; // LSB is sub1, 2nd is sub2
 
     public void run() { // G6LeaderRobot's default behavior
         fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth() - 160, getBattleFieldHeight() - 160);
@@ -36,11 +37,9 @@ public class G6LeaderRobot extends TeamRobot {
         // linear prediction gun
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
         double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power));
-        double targetX = getX() + e.getDistance() * Math.sin(absBearing);
-        double targetY = getY() + e.getDistance() * Math.cos(absBearing);
 
         // if the target name right now is empty, find the enemy on the non-corner, and send it to other robots as the target
-        if(targetName == null && !(((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)))) { // When the target robot is dead or undecided
+        if(targetName == null && isGoodTarget(e, absBearing)) { // When the target robot is dead or undecided
             //setColors(Color.gray, Color.blue, Color.yellow); // debug
             targetName = e.getName();
             TargetInfo targetMessage = new TargetInfo(targetName);
@@ -98,7 +97,7 @@ public class G6LeaderRobot extends TeamRobot {
     }
 
     public void onRobotDeath(RobotDeathEvent e){ // What to do when a robot dies
-        // if the death robot is the ctarget robot, empty the target name
+        // if the death robot is the target robot, empty the target name
         if(e.getName().equals(targetName)){
             targetName = null;
             TargetInfo targetMessage = new TargetInfo(null);
@@ -109,6 +108,8 @@ public class G6LeaderRobot extends TeamRobot {
                 ex.printStackTrace(out);
             }
         }
+        else if(e.getName().equals("G6team.G6SubRobot1*")) aliveRobots -= 1;
+        else if(e.getName().equals("G6team.G6SubRobot2*")) aliveRobots -= 2;
     }
 
     private void randomMovement() {
@@ -139,6 +140,35 @@ public class G6LeaderRobot extends TeamRobot {
         if(e.getMessage() instanceof MyInfo) {
             MyInfo _myInfo = (MyInfo)e.getMessage();
             myInfoArray[_myInfo.id] = _myInfo;
+        }
+    }
+
+    private boolean isGoodTarget(ScannedRobotEvent e, double absBearing){
+        double myX = getX(), myY = getY();
+        double targetX = myX + e.getDistance() * Math.sin(absBearing), targetY = myY + e.getDistance() * Math.cos(absBearing);
+        double Gx = 0, Gy = 0;
+
+        if((targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)) return false;
+        else {
+            if((aliveRobots & 1) != 0 && ((targetX-myInfoArray[0].x)*(targetX-myInfoArray[0].x) + (targetY-myInfoArray[0].y)*(targetY-myInfoArray[0].y)) > getBattleFieldWidth()*getBattleFieldWidth()*4/9){
+                return false;
+            }
+            if((aliveRobots & 2) != 0 && ((targetX-myInfoArray[1].x)*(targetX-myInfoArray[1].x) + (targetY-myInfoArray[1].y)*(targetY-myInfoArray[1].y)) > getBattleFieldWidth()*getBattleFieldWidth()*4/9){
+                return false;
+            }
+
+            if(aliveRobots>=3) { // 2 subrobots alive
+                Gx = (myX + myInfoArray[0].x + myInfoArray[1].x)/3;
+                Gy = (myY + myInfoArray[0].y + myInfoArray[1].y)/3;
+            }else if(aliveRobots == 1){ // only subrobot 1 is alive
+                Gx = (myX + myInfoArray[0].x)/2;
+                Gy = (myY + myInfoArray[0].y)/2;
+            }else if(aliveRobots == 2){ // only subrobot 2 is alive
+                Gx = (myX + myInfoArray[1].x)/2;
+                Gy = (myY + myInfoArray[1].y)/2;
+            }
+            if(Gx!=0 && Gy!=0 && (((targetX-Gx)*(targetX-Gx)+(targetY-Gy)*(targetY-Gy))>getBattleFieldWidth()*getBattleFieldWidth()/16)) return false;
+            else return true;
         }
     }
 
