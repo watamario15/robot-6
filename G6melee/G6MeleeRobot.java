@@ -38,7 +38,7 @@ public class G6MeleeRobot extends AdvancedRobot {
         setFire(power);
         
         // Track enemy
-		if(battleModeFlag){
+		if(battleModeFlag || e.getDistance() < 100){
         	setTurnRightRadians(e.getBearingRadians());
         	setAhead(e.getDistance());
         	// setTurnRadarRightRadians(absBearing - getRadarHeadingRadians()); // infinite lock
