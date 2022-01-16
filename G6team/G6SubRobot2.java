@@ -15,7 +15,7 @@ public class G6SubRobot2 extends TeamRobot {
     private String intervalName;
     private String targetName, leaderName = "G6team.G6LeaderRobot*";
     private String myName;
-    private int timeCounter;
+    private double lastSentTime = 0;
     private MyInfo[] myInfoArray = new MyInfo[2]; // MyInfo array
     private TargetInfo leaderMessage;
     private Rectangle2D fieldRect; // Safety square on the field
@@ -33,35 +33,30 @@ public class G6SubRobot2 extends TeamRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
-        if(!isPass(e)) return;
+        if(isTeammate(e.getName())) return;
 
-        timeCounter++;
-        if(timeCounter >= 30){
-            timeCounter = 0;
-            MyInfo myInfo = new MyInfo(getX(), getY(), 1);
-            try {
-                broadcastMessage(myInfo);
-            } catch (IOException ex) {
-                out.println("Unable to broadcast my information.");
-                ex.printStackTrace(out);
-            }
-        }
-
-        // Adjust the bullet energy
-        if(e.getDistance() > 100) power = 1.5;
-        else power = 3;
-
-        // Reference: http://robowiki.net/wiki/Robocode/Butthead
-        // Linear prediction gun
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
-        double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power)); // The extra angle the bullet would travel
         double targetX = getX() + e.getDistance() * Math.sin(absBearing);
         double targetY = getY() + e.getDistance() * Math.cos(absBearing);
-        
-        // Targeting a single enemy and he's gone to a corner
-        if(targetName!=null && targetName.equals(e.getName()) && (targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)){
-            interval = getTime();
-            intervalName = e.getName();
+
+        // Job as a subrobot
+        if(!leaderName.equals(myName)){
+            if(getTime()-lastSentTime > 30){
+                lastSentTime = getTime();
+                MyInfo myInfo = new MyInfo(getX(), getY(), 1);
+                try {
+                    broadcastMessage(myInfo);
+                } catch (IOException ex) {
+                    out.println("Unable to broadcast my information.");
+                    ex.printStackTrace(out);
+                }
+            }
+
+            // Targeting a single enemy and he's gone to a corner
+            if(targetName!=null && targetName.equals(e.getName()) && (targetX<100 && targetY<100) || (targetX<100 && targetY>700) || (targetX>700 && targetY<100) || (targetX>700 && targetY>700)){
+                interval = getTime();
+                intervalName = e.getName();
+            }
         }
 
         // Job as a leader
@@ -76,23 +71,32 @@ public class G6SubRobot2 extends TeamRobot {
             }
         }
 
-        // Track enemy
-        setTurnRightRadians(e.getBearingRadians());
-        setAhead(e.getDistance());
+        if(toAttack(e)){
+            // Adjust the bullet energy
+            if(e.getDistance() > 100) power = 1.5;
+            else power = 3;
 
-        // Radar
-        double radarTurn = Utils.normalRelativeAngle(absBearing - getRadarHeadingRadians());
-        double extraTurn = Math.min(Math.atan(36.0 / e.getDistance()), Rules.RADAR_TURN_RATE_RADIANS);
-        if(radarTurn < 0) radarTurn -= extraTurn;
-        else radarTurn += extraTurn;
-        setTurnRadarRightRadians(radarTurn); // Turn the radar
+            // Reference: http://robowiki.net/wiki/Robocode/Butthead
+            // Linear prediction gun
+            double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power)); // The extra angle the bullet would travel
 
-        // Adjust the gun to the predicted location of the enemy
-        double gunAngle = Utils.normalRelativeAngle(absBearing - getGunHeadingRadians() + theta);
-        setTurnGunRightRadians(gunAngle);
-        setFire(power);
+            // Track enemy
+            setTurnRightRadians(e.getBearingRadians());
+            setAhead(e.getDistance());
 
-        execute();
+            // Radar
+            double radarTurn = Utils.normalRelativeAngle(absBearing - getRadarHeadingRadians());
+            double extraTurn = Math.min(Math.atan(36.0 / e.getDistance()), Rules.RADAR_TURN_RATE_RADIANS);
+            if(radarTurn < 0) radarTurn -= extraTurn;
+            else radarTurn += extraTurn;
+            setTurnRadarRightRadians(radarTurn); // Turn the radar
+
+            // Adjust the gun to the predicted location of the enemy
+            double gunAngle = Utils.normalRelativeAngle(absBearing - getGunHeadingRadians() + theta);
+            setTurnGunRightRadians(gunAngle);
+            setFire(power);
+        }
+            execute();
     }
 
     public void onHitByBullet(HitByBulletEvent e) { // What to do when you're hit by a bullet
@@ -114,7 +118,7 @@ public class G6SubRobot2 extends TeamRobot {
 
     public void onRobotDeath(RobotDeathEvent e){ // What to do when a robot dies
         if(e.getName().equals(leaderName)){ // Prepare for the leader change
-            if(getTeammates() != null){
+            if(getTeammates() != null){ // We still have a teammate
                 try {
                     broadcastMessage(new EnergyInfo(getEnergy()));
                 } catch (IOException ex) {
@@ -122,7 +126,9 @@ public class G6SubRobot2 extends TeamRobot {
                     ex.printStackTrace(out);
                 }
             }else{
-                leaderName = myName;
+                leaderName = myName; // All teammates are dead and this robot becomes the leader
+                intervalName = null;
+                interval = 0;
             }
         }
         if(e.getName().equals(targetName)){ // If the dead robot is the target robot, empty the target name
@@ -143,8 +149,12 @@ public class G6SubRobot2 extends TeamRobot {
             leaderMessage = (TargetInfo)e.getMessage();
             targetName = leaderMessage.targetName;
         }else if(e.getMessage() instanceof EnergyInfo) {
-            if(getEnergy() > ((EnergyInfo)e.getMessage()).energy) leaderName = myName;
-            else leaderName = "G6team.G6SubRobot1*";
+            if(getEnergy() > ((EnergyInfo)e.getMessage()).energy){ // This robot becomes the leader
+                leaderName = myName;
+                intervalName = null;
+                interval = 0;
+            }
+            else leaderName = "G6team.G6SubRobot1*"; // Subrobot 1 becomes the leader
         }else if(e.getMessage() instanceof MyInfo) {
             MyInfo _myInfo = (MyInfo)e.getMessage();
             myInfoArray[_myInfo.id] = _myInfo;
@@ -152,9 +162,8 @@ public class G6SubRobot2 extends TeamRobot {
     }
 
     private void randomMovement() {
-        timeCounter++;
-        if(timeCounter >= 30){
-            timeCounter = 0;
+        if(getTime()-lastSentTime > 30){
+            lastSentTime = getTime();
             MyInfo myInfo = new MyInfo(getX(), getY(), 1);
             try {
                 broadcastMessage(myInfo);
@@ -187,29 +196,23 @@ public class G6SubRobot2 extends TeamRobot {
         execute();
     }
 
-    private boolean isPass(ScannedRobotEvent e){
+    private boolean toAttack(ScannedRobotEvent e){
         String enemyName = e.getName();
 
-        if(isTeammate(enemyName)) return false;
-        if(leaderName.equals(myName)){ // This robot is the leader
+        if(!leaderName.equals(myName)) { // This robot isn't the leader
+            if(enemyName.equals(intervalName)){ // Can this robot attack the scanned enemy?
+                if(getTime()-interval <= 300) return false; // Still in the interval period
+                else{ // The interval period ended
+                    intervalName = null;
+                    interval = 0;
+                }
+            }
+        }
+
+        if(targetName == null) return true; // We don't have a target
+        else{ // We have a target
             if(enemyName.equals(targetName)) return true;
             else return false;
-        }else{
-            if(targetName!=null && !enemyName.equals(targetName)) return false; // If the robot is teammate/not target, go back to the random movement
-            else{
-                if(intervalName!=null){
-                    if(targetName.equals(intervalName)){
-                        if(getTime()-interval <= 300) return false;
-                        else{
-                            intervalName = null;
-                            interval = 0;
-                            return true;
-                        }
-                    }
-                    else return true;
-                }
-                else return true;
-            }
         }
     }
 

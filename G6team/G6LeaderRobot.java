@@ -28,15 +28,8 @@ public class G6LeaderRobot extends TeamRobot {
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
         if(isTeammate(e.getName())) return; // If the robot is teammate, go back to the default behavior
-
-        // Adjust the bullet energy
-        if(e.getDistance() > 100) power = 1.5;
-        else power = 3;
-
-        // Reference: http://robowiki.net/wiki/Robocode/Butthead
-        // Linear prediction gun
+        
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
-        double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power)); // The extra angle the bullet would travel
 
         // if the target name is empty and a scanned robot is "good," broadcast it to other robots
         if(targetName == null && isGoodTarget(e, absBearing)) {
@@ -52,6 +45,14 @@ public class G6LeaderRobot extends TeamRobot {
         
         // when the scanned robot is the current target
         if(e.getName().equals(targetName)) {
+            // Adjust the bullet energy
+            if(e.getDistance() > 100) power = 1.5;
+            else power = 3;
+
+            // Reference: http://robowiki.net/wiki/Robocode/Butthead
+            // Linear prediction gun
+            double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power)); // The extra angle the bullet would travel
+
             // Track enemy
             setTurnRightRadians(e.getBearingRadians());
             setAhead(e.getDistance());
