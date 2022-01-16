@@ -23,6 +23,7 @@ public class G6SubRobot1 extends TeamRobot {
     private boolean aliveSub = true; // Is sub2 alive?
 
     public void run() { // G6SubRobot1's default behavior
+        myInfoArray[0] = new MyInfo(0, 0, 0); myInfoArray[1] = new MyInfo(0, 0, 1); // Stab
         fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth() - 160, getBattleFieldHeight() - 160);
         myName = getName();
         setColors(Color.gray, Color.yellow, Color.yellow); // body, gun, radar

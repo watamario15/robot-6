@@ -7,16 +7,17 @@ import robocode.util.Utils;
 import java.awt.geom.Rectangle2D;
 
 public class G6MeleeRobot extends AdvancedRobot {
+    private double direction = 1; // The direction of the random movement
     private Random rnd = new Random();
     private double power = 0.1; // power of the gun
     private Rectangle2D centralRect = new Rectangle2D.Double(400, 400, 1200, 1200); //make a central square
     private boolean battleModeFlag = false;
+    private Rectangle2D fieldRect; // Safety square on the field
 
     public void run() { // G6MeleeRobot's default behavior
+        fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth()-160, getBattleFieldHeight()-160); // make a safety square in the field
         setColors(Color.gray, Color.yellow, Color.yellow); // body, gun, radar
 		
-		setTurnRadarRightRadians(100000); // Always search for enemies in all direction
-
         while(true) randomMovement();
     }
 
@@ -60,16 +61,14 @@ public class G6MeleeRobot extends AdvancedRobot {
     }
 
     private void randomMovement() {
-        double direction = 1;
-        if(rnd.nextBoolean()) direction *= -1;
-        setMaxTurnRate(3); // change the turn rate
-        
-        Rectangle2D fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth()-160, getBattleFieldHeight()-160); // make a safety square in the field
-        
-        setAhead(100000); // always go ahead
-        setTurnRight(direction*(30+rnd.nextDouble()*120)); 
-				
-		while(getTurnRemaining()!=0){
+        if(getTurnRemaining() == 0) {
+            if(rnd.nextBoolean()) direction = -direction;
+            setMaxTurnRate(3); // change the turn rate
+            setAhead(100000); // always go ahead
+            setTurnRight(direction*(30+rnd.nextDouble()*120));
+		    setTurnRadarRightRadians(100000); // Always search for enemies in all direction
+            execute();
+		}else{
 			double goalDirection = getHeadingRadians();
 			while(!fieldRect.contains(getX()+Math.sin(goalDirection)*150, getY()+Math.cos(goalDirection)*150)) {
 				goalDirection += direction*.1;

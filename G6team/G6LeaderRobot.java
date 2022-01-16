@@ -18,6 +18,7 @@ public class G6LeaderRobot extends TeamRobot {
     private int aliveRobots = 3; // LSB is sub1, 2nd is sub2
 
     public void run() { // G6LeaderRobot's default behavior
+        myInfoArray[0] = new MyInfo(0, 0, 0); myInfoArray[1] = new MyInfo(0, 0, 1); // Stab
         fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth() - 160, getBattleFieldHeight() - 160);
         setColors(Color.gray, Color.yellow, Color.yellow); // body, gun, radar
         setAdjustGunForRobotTurn(true); // Set the gun to turn independent from the robot's turn
