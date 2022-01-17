@@ -186,9 +186,9 @@ public class G6SubRobot1 extends TeamRobot {
             while (!fieldRect.contains(getX() + Math.sin(goalDirection) * 150, getY() + Math.cos(goalDirection) * 150)) {
                 goalDirection += direction * .1;
             }
-            double turn = robocode.util.Utils.normalRelativeAngle(goalDirection - getHeadingRadians());
+            double turn = Utils.normalRelativeAngle(goalDirection - getHeadingRadians());
             if (Math.abs(turn) > Math.PI / 2) {
-                turn = robocode.util.Utils.normalRelativeAngle(turn + Math.PI);
+                turn = Utils.normalRelativeAngle(turn + Math.PI);
                 setBack(100);
             }
             setMaxTurnRate(10); // Reset the turn rate in order to avoid hitting walls

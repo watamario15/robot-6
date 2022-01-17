@@ -1,10 +1,10 @@
 package G6melee;
 
 import robocode.*;
-import java.util.Random; // added to use random values
-import java.awt.Color;
 import robocode.util.Utils;
+import java.awt.Color;
 import java.awt.geom.Rectangle2D;
+import java.util.Random; // added to use random values
 
 public class G6MeleeRobot extends AdvancedRobot {
     private double direction = 1; // The direction of the random movement
@@ -17,15 +17,16 @@ public class G6MeleeRobot extends AdvancedRobot {
     public void run() { // G6MeleeRobot's default behavior
         fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth()-160, getBattleFieldHeight()-160); // make a safety square in the field
         setColors(Color.gray, Color.yellow, Color.yellow); // body, gun, radar
-		
+
         while(true) randomMovement();
     }
 
     public void onScannedRobot(ScannedRobotEvent e) { // What to do when you see another robot
-        if (e.getDistance() > 500){ // If the enemy is too faraway, go back to the random movement
-            randomMovement();
-            return;
-        }
+        if(e.getDistance() > 500) return; // If the enemy is too faraway, go back to the random movement
+
+        // Adjust the bullet energy
+        if(e.getDistance() > 100) power = 0.1;
+        else power = 3;
 
         // Reference: http://robowiki.net/wiki/Robocode/Butthead
         // linear prediction gun
@@ -34,13 +35,13 @@ public class G6MeleeRobot extends AdvancedRobot {
         double gunAngle = Utils.normalRelativeAngle(absBearing - getGunHeadingRadians() + theta); // The angle the gun needs to turn to hit the enemy
         setTurnGunRightRadians(gunAngle);
         setFire(power);
-        
+
         // Track enemy
-		if(battleModeFlag || e.getDistance() < 100){
-        	setTurnRightRadians(e.getBearingRadians());
-        	setAhead(e.getDistance());
-		}
-        
+        if(battleModeFlag || e.getDistance() < 100){
+            setTurnRightRadians(e.getBearingRadians());
+            setAhead(e.getDistance());
+        }
+
         // Radar
         setTurnRadarLeftRadians(getRadarTurnRemaining());
     }
@@ -54,39 +55,37 @@ public class G6MeleeRobot extends AdvancedRobot {
     }
     
     public void onRobotDeath(RobotDeathEvent e) { // What to do when another robot dies
-    	if(getOthers() <= 4) {
-    		battleModeFlag = true;
-    		power = 3;
-    	}
+        if(getOthers() <= 4)  battleModeFlag = true;
     }
 
     private void randomMovement() {
         if(getTurnRemaining() == 0) {
             if(rnd.nextBoolean()) direction = -direction;
             setMaxTurnRate(3); // change the turn rate
+            
             setAhead(100000); // always go ahead
             setTurnRight(direction*(30+rnd.nextDouble()*120));
-		    setTurnRadarRightRadians(100000); // Always search for enemies in all direction
+            setTurnRadarRightRadians(100000); // Always search for enemies in all direction
             execute();
-		}else{
-			double goalDirection = getHeadingRadians();
-			while(!fieldRect.contains(getX()+Math.sin(goalDirection)*150, getY()+Math.cos(goalDirection)*150)) {
-				goalDirection += direction*.1;
-			}
-			double turn = Utils.normalRelativeAngle(goalDirection-getHeadingRadians());
-			if(Math.abs(turn) > Math.PI/2) {
-				turn = Utils.normalRelativeAngle(turn + Math.PI);
-				setBack(100);
-			}
-			setMaxTurnRate(10); // reset the turn rate in order to avoid hitting walls
-			if(turn!=0) setTurnRightRadians(turn);
-			execute();
-			while(!battleModeFlag && centralRect.contains(getX(), getY())){
-				setTurnRightRadians(Utils.normalRelativeAngle(Math.atan2(getX()-1000, getY()-1000)-getHeadingRadians()));
-				setAhead(1000);
-				execute();
-			}
-		}
+        }else{
+            double goalDirection = getHeadingRadians();
+            while(!fieldRect.contains(getX()+Math.sin(goalDirection)*150, getY()+Math.cos(goalDirection)*150)) {
+                goalDirection += direction*.1;
+            }
+            double turn = Utils.normalRelativeAngle(goalDirection-getHeadingRadians());
+            if(Math.abs(turn) > Math.PI/2) {
+                turn = Utils.normalRelativeAngle(turn + Math.PI);
+                setBack(100);
+            }
+            setMaxTurnRate(10); // reset the turn rate in order to avoid hitting walls
+            if(turn!=0) setTurnRightRadians(turn);
+            execute();
+            while(!battleModeFlag && centralRect.contains(getX(), getY())){
+                setTurnRightRadians(Utils.normalRelativeAngle(Math.atan2(getX()-1000, getY()-1000)-getHeadingRadians()));
+                setAhead(1000);
+                execute();
+            }
+        }
     }
 
     private double bulletVelocity(double power){

@@ -23,7 +23,7 @@ public class G6SubRobot2 extends TeamRobot {
     private boolean aliveSub = true; // Is sub1 alive?
 
     public void run() { // G6SubRobot2's default behavior
-    myInfoArray[0] = new MyInfo(0, 0, 0); myInfoArray[1] = new MyInfo(0, 0, 1); // Stab
+        myInfoArray[0] = new MyInfo(0, 0, 0); myInfoArray[1] = new MyInfo(0, 0, 1); // Stab
         fieldRect = new Rectangle2D.Double(80, 80, getBattleFieldWidth() - 160, getBattleFieldHeight() - 160);
         myName = getName();
         setColors(Color.gray, Color.yellow, Color.yellow); // body, gun, radar
@@ -186,9 +186,9 @@ public class G6SubRobot2 extends TeamRobot {
             while (!fieldRect.contains(getX() + Math.sin(goalDirection) * 150, getY() + Math.cos(goalDirection) * 150)) {
                 goalDirection += direction * .1;
             }
-            double turn = robocode.util.Utils.normalRelativeAngle(goalDirection - getHeadingRadians());
+            double turn = Utils.normalRelativeAngle(goalDirection - getHeadingRadians());
             if (Math.abs(turn) > Math.PI / 2) {
-                turn = robocode.util.Utils.normalRelativeAngle(turn + Math.PI);
+                turn = Utils.normalRelativeAngle(turn + Math.PI);
                 setBack(100);
             }
             setMaxTurnRate(10); // Reset the turn rate in order to avoid hitting walls
