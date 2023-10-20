@@ -28,7 +28,7 @@ public class G6MeleeRobot extends AdvancedRobot {
         if(e.getDistance() > 100) power = 0.1;
         else power = 3;
 
-        // Reference: http://robowiki.net/wiki/Robocode/Butthead
+        // Based on ButtHead, which is authored by Slugzilla and distributed at https://robowiki.net/wiki/ButtHead under the terms of the RWPCL.
         // linear prediction gun
         double absBearing = getHeadingRadians() + e.getBearingRadians(); // Absolute bearing of the enemy
         double theta = Math.asin(e.getVelocity()*Math.sin(e.getHeadingRadians()-absBearing)/bulletVelocity(power)); // The extra angle the bullet would travel in

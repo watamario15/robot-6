@@ -77,7 +77,7 @@ public class G6SubRobot2 extends TeamRobot {
             if(e.getDistance() > 100) power = 1.5;
             else power = 3;
 
-            // Reference: http://robowiki.net/wiki/Robocode/Butthead
+            // Based on ButtHead, which is authored by Slugzilla and distributed at https://robowiki.net/wiki/ButtHead under the terms of the RWPCL.
             // Linear prediction gun
             double theta = Math.asin(e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing) / bulletVelocity(power)); // The extra angle the bullet would travel
 
